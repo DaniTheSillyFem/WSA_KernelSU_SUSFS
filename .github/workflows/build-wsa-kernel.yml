@@ -32,7 +32,7 @@ on:
         type: string
 
 jobs:
-  build-kernel-kernelsu-susfs:
+  build-kernel-kernelsu:
     runs-on: ${{ inputs.runner }}
 
     steps:
@@ -83,15 +83,12 @@ jobs:
 
           # Define the branch names using the inputs values
           ANYKERNEL_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}"
-          SUSFS_BRANCH="gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}"
 
           # Debug print the branches
           echo "Using branch for AnyKernel3: $ANYKERNEL_BRANCH"
-          echo "Using branch for SUSFS: $SUSFS_BRANCH"
 
           # Clone repositories using the branch names
           git clone https://github.com/WildPlusKernel/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
           git clone https://github.com/WildPlusKernel/kernel_patches.git
 
       - name: Determine the branch for KernelSU
@@ -134,84 +131,6 @@ jobs:
             echo "Invalid KernelSU variant selected!"
             exit 1
           fi
-
-      - name: Apply SUSFS Patches for KernelSU Variants
-        run: |
-          echo "Changing to configuration directory: $CONFIG..."
-          cd "$CONFIG"
-          
-          echo "Applying SUSFS patches..."
-          
-          # Copy SUSFS patches
-          cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch ./
-          cp ../susfs4ksu/kernel_patches/fs/* ./fs/
-          cp ../susfs4ksu/kernel_patches/include/linux/* ./include/linux/
-
-          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
-            echo "Applying SUSFS patches for Official KernelSU..."
-            cd ./KernelSU
-            cp ../../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
-            patch -p1 --forward < 10_enable_susfs_for_ksu.patch
-          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "Applying SUSFS patches for KernelSU-Next..."
-            cd ./KernelSU-Next
-            cp ../../kernel_patches/KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch ./
-            patch -p1 --forward < KernelSU-Next-Implement-SUSFS-v1.5.5-Universal.patch || true
-          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-            echo "Applying SUSFS patches for MKSU..."
-            cd ./KernelSU
-            cp ../susfs4ksu/kernel_patches/KernelSU/10_enable_susfs_for_ksu.patch ./
-            patch -p1 --forward < 10_enable_susfs_for_ksu.patch || true
-            
-            echo "Applying MKSU specific SUSFS patch..."
-            cp ../../kernel_patches/mksu_susfs.patch ../KernelSU/
-            patch -p1 < mksu_susfs.patch
-          else
-            echo "Invalid KernelSU variant selected!"
-            exit 1
-          fi
-
-          # Change to common directory and apply common SUSFS patch
-          cd ../
-          patch -p1 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
-
-      - name: Add SUSFS Configuration Settings
-        run: |
-          echo "Changing to configuration directory: $CONFIG..."
-          cd "$CONFIG"
-
-          echo "Adding configuration settings to gki_defconfig..."
-
-          declare -A ARCH_MAP=(["x86_64"]="x64" ["arm64"]="arm64")
-          cp configs/wsa/config-wsa-${ARCH_MAP[${{ inputs.wsa_arch }}]} .config
-
-          echo "startofsus" >> .config
-
-          # Add SUSFS configuration settings
-          echo "CONFIG_KSU=y" >> .config
-          echo "CONFIG_KSU_SUSFS=y" >> .config
-          echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> .config
-          echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> .config
-          echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> .config
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> .config
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_BIND_MOUNT=y" >> .config
-          echo "CONFIG_KSU_SUSFS_SUS_KSTAT=y" >> .config
-          echo "CONFIG_KSU_SUSFS_SUS_OVERLAYFS=n" >> .config
-          echo "CONFIG_KSU_SUSFS_TRY_UMOUNT=y" >> .config
-          echo "CONFIG_KSU_SUSFS_AUTO_ADD_TRY_UMOUNT_FOR_BIND_MOUNT=y" >> .config
-          echo "CONFIG_KSU_SUSFS_SPOOF_UNAME=y" >> .config
-          echo "CONFIG_KSU_SUSFS_ENABLE_LOG=y" >> .config
-          echo "CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS=y" >> .config
-          echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> .config
-          echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> .config
-          echo "CONFIG_KSU_SUSFS_SUS_SU=y" >> .config
-
-          # Add additional tmpfs config setting
-          echo "CONFIG_TMPFS_XATTR=y" >> .config
-          echo "CONFIG_TMPFS_POSIX_ACL=y" >> .config
-
-          echo "CONFIG_FANOTIFY=n" >> .config
-          echo "endofsus" >> .config
           
       - name: Build the Kernel
         run: |
