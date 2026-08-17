@@ -60,8 +60,8 @@ jobs:
         - kernel-wsa
     if: ${{ inputs.make_release }}
     env:
-      REPO_OWNER: WildPlusKernel
-      REPO_NAME: GKI_KernelSU_SUSFS
+      REPO_OWNER: DaniTheSillyFem
+      REPO_NAME: WSA_KernelSU_SUSFS
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       RELEASE_NAME: "*TEST BUILD* WSA Kernels With KernelSU-${{ inputs.kernelsu_variant }} ${{ inputs.kernelsu_branch }} & SUSFS v1.5.5 *TEST BUILD*"
       RELEASE_NOTES: |
@@ -74,9 +74,6 @@ jobs:
         -> Simple Maphide for LineageOS Detections
         -> Futile Maphide for jit-zygote-cache Detections
         -> Magic Mount Support
-
-        Module: 
-        -> https://github.com/sidex15/ksu_module_susfs
         
     steps:
       # Checkout the code
