@@ -20,7 +20,7 @@ on:
         type: string
 
 jobs:
-  build-kernel-wsa-kernelsu-susfs:
+  build-kernel-wsa-kernelsu:
     strategy:
       fail-fast: false
       matrix:
